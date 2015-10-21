@@ -70,11 +70,11 @@ link 'lsw2', 'host4'
 ##### host1とhost2の送受信
 **host1**と**host2**のパケット送受信のテストをした．  
 **host1**と**host2**は**lsw1**に接続されているので，お互いに**lsw1**を介してパケットが転送されるはずである．   
-動作テストの結果を，以下に示す．
-まず，**host1->host2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．
-そして，**host2->host1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認した．
-結果，正常に**host1**,**host2**間でパケットが送受信されていることが確認できた．
-また，**lsw1**のフローテーブルを確認したところ，**host2->host1**のフローエントリのみが登録されており，正常に動作しているといえる．
+動作テストの結果を，以下に示す．  
+まず，**host1->host2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
+そして，**host2->host1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認した．  
+結果，正常に**host1**,**host2**間でパケットが送受信されていることが確認できた．  
+また，**lsw1**のフローテーブルを確認したところ，**host2->host1**のフローエントリのみが登録されており，正常に動作しているといえる．  
 
 ```
 $ bin/trema packet_send --source host1 --dest host2
@@ -97,7 +97,9 @@ Packets received:
   192.168.0.1 -> 192.168.0.2 = 1 packet
 $ bin/trema dump_flows lsw1
 NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=204.758s, table=0, n_packets=0, n_bytes=0, idle_age=204, priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=98:29:11:ca:df:bd,dl_dst=7b:52:dc:06:25:ec,nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
+ cookie=0x0, duration=204.758s, table=0, n_packets=0, n_bytes=0, idle_age=204,
+priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=98:29:11:ca:df:bd,dl_dst=7b:52:dc:06:25:ec,
+nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
 ```
 
 ##### host1からhost3へ送信
