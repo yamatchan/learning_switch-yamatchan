@@ -38,7 +38,7 @@ FDBは複数存在するのでFDBを更新する際，`@fdbs.fetch(datapath_id)`
 
 ### 動作確認
 #### 想定環境
-スイッチを4つ(lsw1, lsw2, lsw3, lws4)を用意し，それぞれのスイッチにホストを2ずつ接続し(lsw1; host1-1/host1-2, lsw2; host2-1/host2-2, lsw3; host3-1/host3-1, lsw4l host4-1/host4-2)動作確認を行った．  
+スイッチを4つ(lsw1, lsw2, lsw3, lws4)を用意し，それぞれのスイッチにホストを2つずつ接続し(lsw1; host1-1/host1-2, lsw2; host2-1/host2-2, lsw3; host3-1/host3-1, lsw4l host4-1/host4-2)動作確認を行った．  
 接続のイメージ図とconfファイルの詳細を以下に示す．
 
 ![想定環境イメージ図](https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img1.png)
@@ -100,7 +100,7 @@ link 'lsw4', 'host4-2'
 
 1. **host1-1**から**lsw1**へパケットが転送される
 2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる． 
-3. コントローラはPacketInメッセージから**host1-1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; `:11 => ポート1`]   
+3. コントローラはPacketInメッセージから**host1-1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; ***:11 => ポート1***]   
 4. コントローラは送信先の**host1-2**のMACアドレスがFDB1に登録されていないので，パケットをフラッディングとしてPacketOutする．  
 5. PacketOutを受け取った**lsw1**はパケットをフラッディングするので，結果，パケットが**host1-2**へ転送される．
 6. **host1-2**が**lsw1**からパケットを受け取る．  
@@ -114,8 +114,8 @@ link 'lsw4', 'host4-2'
 
 1. **host1-2**から**lsw1**へパケットが転送される．
 2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる．
-3. コントローラはPacketInメッセージから**host1-2**のMACアドレスとポート番号をFDB1に保存する．[FDB1; :11 => ポート1, `:12 => ポート2`]  
-さらに，送信先の**host1-1**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; `:12->:11 => ポート1へ`]  
+3. コントローラはPacketInメッセージから**host1-2**のMACアドレスとポート番号をFDB1に保存する．[FDB1; :11 => ポート1, ***:12 => ポート2***]  
+さらに，送信先の**host1-1**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; ***:12->:11 => ポート1へ***]  
 4. コントローラは送信先の**host1-1**が接続されているポート番号が分かっているので，送信ポート番号(ポート1)を付加してPacketOutする．
 5. PacketOutを受け取った**lsw1**はパケットをポート1(**host1-1**)へパケットを転送する．
 6. **host1-1**が**lsw1**からパケットを受け取る．  
@@ -136,7 +136,7 @@ lsw4: 空
 
 1. **host1-1**から**lsw1**へパケットが転送される．
 2. **lsw1**のフローテーブルに条件がマッチングするものがないので，PacketInがコントローラに送られる．
-3. 送信先の**host1-2**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; :12->:11 => ポート1へ, `:11->:12 => ポート2へ`]  
+3. 送信先の**host1-2**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; :12->:11 => ポート1へ, ***:11->:12 => ポート2へ***]  
 4. コントローラは送信先の**host1-2**が接続されているポート番号が分かっているので，送信ポート番号(ポート2)を付加してPacketOutする．
 5. PacketOutを受け取った**lsw1**はパケットをポート2(**host1-2**)へパケットを転送する．
 6. **host1-2**が**lsw1**からパケットを受け取る．  
@@ -156,7 +156,7 @@ lsw4: 空
 ###### 実行結果
 動作テストの実行結果を，以下に示す．  
 まず，**host1-1**->**host1-2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
-また全てのスイッチのフローテーブルの確認も行った．
+また全てのスイッチのフローテーブルの確認も行った．  
 結果，**host1-1**から**host1-2**へパケットが送信されていることが確認でき，各スイッチのフローテーブルは空であることが確認できた．
 
 ```
@@ -180,7 +180,7 @@ NXST_FLOW reply (xid=0x4):
 
 続けて，**host1-2**->**host1-1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
 また全てのスイッチのフローテーブルの確認も行った．  
-結果，**host1-2**から**host1-1**へパケットが送信されていることが確認できた．
+結果，**host1-2**から**host1-1**へパケットが送信されていることが確認できた．  
 各スイッチのフローテーブルは前述したとおりになっていることが確認でき，フローテーブルの管理も含めて正常に動作しているといえる．(dl_src, dl_dst, actionsの値を確認すると，前述通りのフローテーブルになっていることが分かる)
 
 
@@ -198,7 +198,8 @@ Packets received:
   192.168.0.11 -> 192.168.0.12 = 1 packet
 $ bin/trema dump_flows lsw1
 NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=12.19s, table=0, n_packets=0, n_bytes=0, idle_age=12, priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:12,dl_dst=00:00:00:00:00:11,
+ cookie=0x0, duration=12.19s, table=0, n_packets=0, n_bytes=0, idle_age=12,
+priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:12,dl_dst=00:00:00:00:00:11,
 nw_src=192.168.0.12,nw_dst=192.168.0.11,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
 $ bin/trema dump_flows lsw2
 NXST_FLOW reply (xid=0x4):
@@ -210,7 +211,7 @@ NXST_FLOW reply (xid=0x4):
 
 そして再度，**host1-1**->**host1-2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
 また全てのスイッチのフローテーブルの確認も行った．  
-結果，**host1-1**から**host1-2**へ再度パケットが送信されていることが確認できた．
+結果，**host1-1**から**host1-2**へ再度パケットが送信されていることが確認できた．  
 各スイッチのフローテーブルは前述したとおりになっていることが確認でき，フローテーブルの管理も含めて正常に動作しているといえる．(dl_src, dl_dst, actionsの値を確認すると，前述通りのフローテーブルになっていることが分かる)
 
 
@@ -228,9 +229,11 @@ Packets received:
   192.168.0.11 -> 192.168.0.12 = 2 packets
 $ bin/trema dump_flows lsw1
 NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=8.085s, table=0, n_packets=0, n_bytes=0, idle_age=8, priority=65535,udp,in_port=1,vlan_tci=0x0000,dl_src=00:00:00:00:00:11,dl_dst=00:00:00:00:00:12,
+ cookie=0x0, duration=8.085s, table=0, n_packets=0, n_bytes=0, idle_age=8,
+priority=65535,udp,in_port=1,vlan_tci=0x0000,dl_src=00:00:00:00:00:11,dl_dst=00:00:00:00:00:12,
 nw_src=192.168.0.11,nw_dst=192.168.0.12,nw_tos=0,tp_src=0,tp_dst=0 actions=output:2
- cookie=0x0, duration=272.267s, table=0, n_packets=0, n_bytes=0, idle_age=272, priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:12,dl_dst=00:00:00:00:00:11,
+ cookie=0x0, duration=272.267s, table=0, n_packets=0, n_bytes=0, idle_age=272,
+priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:12,dl_dst=00:00:00:00:00:11,
 nw_src=192.168.0.12,nw_dst=192.168.0.11,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
 $ bin/trema dump_flows lsw2
 NXST_FLOW reply (xid=0x4):
@@ -250,7 +253,7 @@ NXST_FLOW reply (xid=0x4):
 
 1. **host1-1**から**lsw1**へパケットが転送される
 2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる． 
-3. コントローラはPacketInメッセージから**host1-1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; `:11 => ポート1`]   
+3. コントローラはPacketInメッセージから**host1-1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; ***:11 => ポート1***]   
 4. コントローラは送信先の**host2-1**のMACアドレスがFDB1に登録されていないので，パケットをフラッディングとしてPacketOutする．  
 5. PacketOutを受け取った**lsw1**はパケットをフラッディングするので，結果，パケットが**host1-2**へ転送されるが，***host2-1***へは転送されない．
 6. 結果，**host1-1**から**host2-1**へはパケットが伝送されない．
@@ -261,8 +264,8 @@ NXST_FLOW reply (xid=0x4):
 ###### 実行結果
 動作テストの実行結果を，以下に示す．  
 まず，**host1-1**->**host2-1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
-また全てのスイッチのフローテーブルの確認も行った．
-結果，**host1-1**から**host2-1**へパケットが送信できておらず，各スイッチのフローテーブルは空であることが確認できた．なお，フラッディングで**host1-2**へパケットが転送されたが，宛先が異なるので破棄されたので**host1-2**の`show_stats`は空であった．
+また全てのスイッチのフローテーブルの確認も行った．  
+結果，**host1-1**から**host2-1**へパケットが送信できておらず，各スイッチのフローテーブルは空であることが確認できた．なお，フラッディングで**host1-2**へパケットが転送されたが，宛先が異なり破棄されたので**host1-2**の`show_stats`は空であった．
 
 ```
 $ bin/trema send_packet --source "host1-1" --dest "host2-1"
