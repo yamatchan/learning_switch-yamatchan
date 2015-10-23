@@ -141,22 +141,7 @@ Packets received:
 スイッチを4つ(lsw1, lsw2, lsw3, lws4)を用意し，それぞれのスイッチにホストを1つ接続し(lsw1; host1, lsw2; host2, lsw3; host3, lsw4l host4)，さらにlsw1とlws2，lsw2とlws3，lws3とlws4を接続し動作確認を行った．  
 接続のイメージ図とconfファイルの詳細を以下に示す．
 
-```
-【イメージ図 ※[num]はポート番号】
-lsw1 [1] ━ host1
- ┃[2]
- ┃
- ┃[2]
-lsw2 [1] ━ host2
- ┃[3]
- ┃
- ┃[2]
-lsw3 [1] ━ host3
- ┃[3]
- ┃
- ┃[2]
-lsw4 [1] ━ host4
-```
+<img src="https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img1.png?raw=true">
 
 ```
 vswitch('lsw1') { datapath_id 0x1 }
@@ -206,23 +191,27 @@ link 'lsw3', 'lsw4'
 9. PacketOutを受け取った**lsw2**はパケットをフラッディングするので，結果，パケットが**host2**および**lsw3**へ転送される(**lsw3**へ送られたパケットの処理は同様なので省略する)．  
 10. **host2**が**lsw2**からパケットを受け取る．  
 
+<img src="https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img23.png?raw=true">
+
 ※処理後，全てのスイッチのフローテーブルは更新されていないので空のままのはずである．  
 <br />
 
 続けて，**host2**から**host1**へパケットを送信する際に予想される動作を以下に述べる．
 
-1. **host2**から**lsw2**へパケットが転送される．
-2. **lsw2**のフローテーブルが空なので，PacketInがコントローラに送られる．
-3. コントローラはPacketInメッセージから**host2**のMACアドレスとポート番号をFDB2に保存する．[FDB2; :01 => ポート2, :02 => ポート1]  
+11. **host2**から**lsw2**へパケットが転送される．
+12. **lsw2**のフローテーブルが空なので，PacketInがコントローラに送られる．
+13. コントローラはPacketInメッセージから**host2**のMACアドレスとポート番号をFDB2に保存する．[FDB2; :01 => ポート2, :02 => ポート1]  
 さらに，送信先の**host1**のMACアドレスがFDB2に登録されているので，フローテーブルFT2を更新する．[FT2; :01->:02 => ポート2へ]  
-4. コントローラは送信先の**host1**の属するネットワークのポート番号が分かっているので，送信ポート番号(ポート2)を付加してPacketOutする．
-5. PacketOutを受け取った**lsw2**はパケットをポート2(**lsw1**)へパケットを転送する．
-6. パケットを受け取った**lsw1**のフローテーブルも空なので，PacketInがコントローラに送られる．
-7. コントローラはPacketInメッセージからhost2のMACアドレスとポート番号(lsw2の接続ポート)をFDB1に保存する．[FDB1; :01 => ポート1, :02 => ポート2]  
+14. コントローラは送信先の**host1**の属するネットワークのポート番号が分かっているので，送信ポート番号(ポート2)を付加してPacketOutする．
+15. PacketOutを受け取った**lsw2**はパケットをポート2(**lsw1**)へパケットを転送する．
+16. パケットを受け取った**lsw1**のフローテーブルも空なので，PacketInがコントローラに送られる．
+17. コントローラはPacketInメッセージからhost2のMACアドレスとポート番号(lsw2の接続ポート)をFDB1に保存する．[FDB1; :01 => ポート1, :02 => ポート2]  
 さらに，送信先の**host1**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; :01->:02 => ポート1へ]  
-8. コントローラは送信先の**host1**のポート番号が分かっているので，送信ポート番号(ポート1)を付加してPacketOutする．
-9. PacketOutを受け取った**lsw1**はパケットをポート1(**host1**)へパケットを転送する．
-10. **host1**が**lsw1**からパケットを受け取る．  
+18. コントローラは送信先の**host1**のポート番号が分かっているので，送信ポート番号(ポート1)を付加してPacketOutする．
+19. PacketOutを受け取った**lsw1**はパケットをポート1(**host1**)へパケットを転送する．
+20. **host1**が**lsw1**からパケットを受け取る．  
+
+<img src="https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img45.png?raw=true">
 
 処理後，それぞれのスイッチのフローテーブルは以下のようになっているはずである．
 
