@@ -36,112 +36,12 @@ FDBは複数存在するのでFDBを更新する際，`@fdbs.fetch(datapath_id)`
 そのPacketOutを受け取ったスイッチは指定されたパケットをフラッディングし，目的のホストにパケットを送信する．  
 
 
-### 動作確認その1
+### 動作確認
 #### 想定環境
-スイッチを2つ(lsw1, lsw2)を用意し，それぞれのスイッチにホストを2つ接続し(lsw1; host1/host2,lsw2; host3/host4)，動作確認を行った．  
+スイッチを4つ(lsw1, lsw2, lsw3, lws4)を用意し，それぞれのスイッチにホストを2ずつ接続し(lsw1; host1-1/host1-2, lsw2; host2-1/host2-2, lsw3; host3-1/host3-1, lsw4l host4-1/host4-2)動作確認を行った．  
 接続のイメージ図とconfファイルの詳細を以下に示す．
 
-```
-【イメージ図】
-lsw1
-┣ host1
-┗ host2
-
-lsw2
-┣ host3
-┗ host4
-```
-```
-vswitch('lsw1') { datapath_id 0xdef }
-vswitch('lsw2') { datapath_id 0xabc }
-
-vhost ('host1') { ip '192.168.0.1' }
-vhost ('host2') { ip '192.168.0.2' }
-vhost ('host3') { ip '192.168.0.3' }
-vhost ('host4') { ip '192.168.0.4' }
-
-link 'lsw1', 'host1'
-link 'lsw1', 'host2'
-link 'lsw2', 'host3'
-link 'lsw2', 'host4'
-```
-
-#### 動作テスト
-##### host1とhost2の送受信
-**host1**と**host2**のパケット送受信のテストをした．  
-**host1**と**host2**は**lsw1**に接続されているので，お互いに**lsw1**を介してパケットが転送されるはずである．   
-動作テストの結果を，以下に示す．  
-まず，**host1->host2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
-そして，**host2->host1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認した．  
-結果，正常に**host1**,**host2**間でパケットが送受信されていることが確認できた．  
-また，**lsw1**のフローテーブルを確認したところ，**host2->host1**のフローエントリのみが登録されており，正常に動作しているといえる．  
-
-```
-$ bin/trema packet_send --source host1 --dest host2
-$ bin/trema show_stats host1
-Packets sent:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
-$ bin/trema show_stats host2
-Packets received:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
-$ bin/trema packet_send --source host2 --dest host1
-$ bin/trema show_stats host1
-Packets sent:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
-Packets received:
-  192.168.0.2 -> 192.168.0.1 = 1 packet
-$ bin/trema show_stats host2
-Packets sent:
-  192.168.0.2 -> 192.168.0.1 = 1 packet
-Packets received:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
-$ bin/trema dump_flows lsw1
-NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=204.758s, table=0, n_packets=0, n_bytes=0, idle_age=204,
-priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=98:29:11:ca:df:bd,dl_dst=7b:52:dc:06:25:ec,
-nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
-```
-
-##### host1からhost3へ送信
-**host1**から**host3**へパケットを送信した．  
-上述のイメージ図からも分かるように，**host1**は**lsw1**，**host3**は**lsw2**に接続されており，**lsw1**と**lsw2**は接続されていないので，
-**host1**から**host3**へはパケットが転送されないはずである．   
-動作テストの結果を，以下に示す．
-`show_stats`で各ホストの送受信したパケットの統計情報を確認すると，**host1**からパケットは送信されているが，**host3**はそのパケットを受信できていないことが分かる．
-
-```
-$ bin/trema packet_send --source host1 --dest host3
-$ bin/trema show_stats host1
-Packets sent:
-  192.168.0.1 -> 192.168.0.3 = 1 packet
-$ bin/trema show_stats host3
-```
-
-##### host3からhost4へ送信
-**host3**から**host4**へパケットを送信した．  
-**host3**と**host4**は**lsw2**に接続されているので，**lsw2**を介してパケットが転送されるはずである．   
-動作テストの結果を，以下に示す．
-`show_stats`で各ホストの送受信したパケットの統計情報を確認すると，正常に**host3**から**host4**へパケットが送信されていることが確認できる．
-
-```
-$ bin/trema packet_send --source host3 --dest host4
-$ bin/trema show_stats host3
-Packets sent:
-  192.168.0.3 -> 192.168.0.4 = 1 packet
-$ bin/trema show_stats host4
-Packets received:
-  192.168.0.3 -> 192.168.0.4 = 1 packet
-```
-
-
-
-
-### 動作確認その2
-#### 想定環境
-スイッチを4つ(lsw1, lsw2, lsw3, lws4)を用意し，それぞれのスイッチにホストを1つ接続し(lsw1; host1, lsw2; host2, lsw3; host3, lsw4l host4)，さらにlsw1とlws2，lsw2とlws3，lws3とlws4を接続し動作確認を行った．  
-接続のイメージ図とconfファイルの詳細を以下に示す．
-
-<img src="https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img1.png?raw=true">
+![想定環境イメージ図](https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img1.png)
 
 ```
 vswitch('lsw1') { datapath_id 0x1 }
@@ -149,141 +49,234 @@ vswitch('lsw2') { datapath_id 0x2 }
 vswitch('lsw3') { datapath_id 0x3 }
 vswitch('lsw4') { datapath_id 0x4 }
 
-vhost('host1') {
- ip '192.168.0.1'
- mac '00:00:00:00:00:01'
+vhost('host1-1') {
+ ip '192.168.0.11'
+ mac '00:00:00:00:00:11'
 }
-vhost('host2') {
- ip '192.168.0.2'
- mac '00:00:00:00:00:02'
+vhost('host1-2') {
+ ip '192.168.0.12'
+ mac '00:00:00:00:00:12'
 }
-vhost('host3') {
- ip '192.168.0.3'
- mac '00:00:00:00:00:03'
+vhost('host2-1') {
+ ip '192.168.0.21'
+ mac '00:00:00:00:00:21'
 }
-vhost('host4') {
- ip '192.168.0.4'
- mac '00:00:00:00:00:04'
+vhost('host2-2') {
+ ip '192.168.0.22'
+ mac '00:00:00:00:00:22'
+}
+vhost('host3-1') {
+ ip '192.168.0.31'
+ mac '00:00:00:00:00:31'
+}
+vhost('host3-2') {
+ ip '192.168.0.32'
+ mac '00:00:00:00:00:32'
+}
+vhost('host4-1') {
+ ip '192.168.0.41'
+ mac '00:00:00:00:00:41'
+}
+vhost('host4-2') {
+ ip '192.168.0.42'
+ mac '00:00:00:00:00:42'
 }
 
-link 'lsw1', 'host1'
-link 'lsw2', 'host2'
-link 'lsw3', 'host3'
-link 'lsw4', 'host4'
-link 'lsw1', 'lsw2'
-link 'lsw2', 'lsw3'
-link 'lsw3', 'lsw4'
+link 'lsw1', 'host1-1'
+link 'lsw1', 'host1-2'
+link 'lsw2', 'host2-1'
+link 'lsw2', 'host2-2'
+link 'lsw3', 'host3-1'
+link 'lsw3', 'host3-2'
+link 'lsw4', 'host4-1'
+link 'lsw4', 'host4-2'
 ```
 
-#### 動作テスト
-##### host1とhost2の送受信
-**host1**と**host2**の送受信のテストをした．  
-**host1**から**host2**へパケットを送信する際に予想される動作を以下に述べる．(MACアドレスはコロンを含めた末尾3桁に省略した形で記述する)  
+#### 動作テスト その1
+##### host1-1とhost1-2の送受信
+###### 予想される動作
+**host1-1**と**host1-2**の送受信のテストをした．  
+**host1-1**から**host1-2**へパケットを送信する際に予想される動作を以下に述べる．(MACアドレスはコロンを含めた末尾3桁に省略した形で記述する)  
 
-1. **host1**から**lsw1**へパケットが転送される．  
-2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる．  
-3. コントローラはPacketInメッセージから**host1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; :01 => ポート1]  
-4. コントローラは送信先の**host2**のMACアドレスがFDB1に登録されていないので，パケットをフラッディングとしてPacketOutする．  
-5. PacketOutを受け取った**lsw1**はパケットをフラッディングするので，結果，パケットが**lsw2**へ転送される．  
-6. **lsw2**のフローテーブルも空なので，PacketInがコントローラに送られる．  
-7. コントローラはPacketInメッセージから**host1**のMACアドレスとポート番号(**lsw1**の接続ポート)をFDB2に保存する．[FDB2; :01 => ポート2]   
-8. コントローラは送信先の**host2**のMACアドレスがFDB2に登録されていないので，パケットをフラッディングとしてPacketOutする．  
-9. PacketOutを受け取った**lsw2**はパケットをフラッディングするので，結果，パケットが**host2**および**lsw3**へ転送される(**lsw3**へ送られたパケットの処理は同様なので省略する)．  
-10. **host2**が**lsw2**からパケットを受け取る．  
+1. **host1-1**から**lsw1**へパケットが転送される
+2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる． 
+3. コントローラはPacketInメッセージから**host1-1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; `:11 => ポート1`]   
+4. コントローラは送信先の**host1-2**のMACアドレスがFDB1に登録されていないので，パケットをフラッディングとしてPacketOutする．  
+5. PacketOutを受け取った**lsw1**はパケットをフラッディングするので，結果，パケットが**host1-2**へ転送される．
+6. **host1-2**が**lsw1**からパケットを受け取る．  
 
-<img src="https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img23.png?raw=true">
+![host1-1からhost1-2へ送信したときの挙動](https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img2.png)
 
 ※処理後，全てのスイッチのフローテーブルは更新されていないので空のままのはずである．  
 <br />
 
-続けて，**host2**から**host1**へパケットを送信する際に予想される動作を以下に述べる．
+続けて，**host1-2**から**host1-1**へパケットを送信する際に予想される動作を以下に述べる．
 
-11. **host2**から**lsw2**へパケットが転送される．
-12. **lsw2**のフローテーブルが空なので，PacketInがコントローラに送られる．
-13. コントローラはPacketInメッセージから**host2**のMACアドレスとポート番号をFDB2に保存する．[FDB2; :01 => ポート2, :02 => ポート1]  
-さらに，送信先の**host1**のMACアドレスがFDB2に登録されているので，フローテーブルFT2を更新する．[FT2; :01->:02 => ポート2へ]  
-14. コントローラは送信先の**host1**の属するネットワークのポート番号が分かっているので，送信ポート番号(ポート2)を付加してPacketOutする．
-15. PacketOutを受け取った**lsw2**はパケットをポート2(**lsw1**)へパケットを転送する．
-16. パケットを受け取った**lsw1**のフローテーブルも空なので，PacketInがコントローラに送られる．
-17. コントローラはPacketInメッセージからhost2のMACアドレスとポート番号(lsw2の接続ポート)をFDB1に保存する．[FDB1; :01 => ポート1, :02 => ポート2]  
-さらに，送信先の**host1**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; :01->:02 => ポート1へ]  
-18. コントローラは送信先の**host1**のポート番号が分かっているので，送信ポート番号(ポート1)を付加してPacketOutする．
-19. PacketOutを受け取った**lsw1**はパケットをポート1(**host1**)へパケットを転送する．
-20. **host1**が**lsw1**からパケットを受け取る．  
+1. **host1-2**から**lsw1**へパケットが転送される．
+2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる．
+3. コントローラはPacketInメッセージから**host1-2**のMACアドレスとポート番号をFDB1に保存する．[FDB1; :11 => ポート1, `:12 => ポート2`]  
+さらに，送信先の**host1-1**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; `:12->:11 => ポート1へ`]  
+4. コントローラは送信先の**host1-1**が接続されているポート番号が分かっているので，送信ポート番号(ポート1)を付加してPacketOutする．
+5. PacketOutを受け取った**lsw1**はパケットをポート1(**host1-1**)へパケットを転送する．
+6. **host1-1**が**lsw1**からパケットを受け取る．  
 
-<img src="https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img45.png?raw=true">
+![host1-2からhost1-1へ送信したときの挙動](https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img3.png)
 
 処理後，それぞれのスイッチのフローテーブルは以下のようになっているはずである．
 
 ```
-lsw1: :01->:02 => ポート1へ (host1)
-lsw2: :01->:02 => ポート2へ (lsw1)
+lsw1: :12->:11 => ポート1へ (host1-1)
+lsw2: 空
 lsw3: 空
 lsw4: 空
 ```
 <br />
 
-そして，動作テストの結果を，以下に示す．  
-まず，**host1**->**host2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
-また**lsw1**と**lsw2**のフローテーブルの確認も行った．
-結果，**host1**から**host2**へパケットが送信されていることが確認でき，各スイッチのフローテーブルは空であることが確認できた．
+さらに続けて，**host1-1**から**host1-2**へパケットを送信する際に予想される動作を以下に述べる．
+
+1. **host1-1**から**lsw1**へパケットが転送される．
+2. **lsw1**のフローテーブルに条件がマッチングするものがないので，PacketInがコントローラに送られる．
+3. 送信先の**host1-2**のMACアドレスがFDB1に登録されているので，フローテーブルFT1を更新する．[FT1; :12->:11 => ポート1へ, `:11->:12 => ポート2へ`]  
+4. コントローラは送信先の**host1-2**が接続されているポート番号が分かっているので，送信ポート番号(ポート2)を付加してPacketOutする．
+5. PacketOutを受け取った**lsw1**はパケットをポート2(**host1-2**)へパケットを転送する．
+6. **host1-2**が**lsw1**からパケットを受け取る．  
+
+![host1-1からhost1-2へ再度送信したときの挙動](https://github.com/handai-trema/learning_switch-yamatchan/blob/master/img/img4.png)
+
+処理後，それぞれのスイッチのフローテーブルは以下のようになっているはずである．
 
 ```
-$ bin/trema send_packet --source host1 --dest host2
-$ bin/trema show_stats host1
+lsw1: :12->:11 => ポート1へ (host1-1)，:11->:12 => ポート2へ (host1-2)
+lsw2: 空
+lsw3: 空
+lsw4: 空
+```
+<br />
+
+###### 実行結果
+動作テストの実行結果を，以下に示す．  
+まず，**host1-1**->**host1-2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
+また全てのスイッチのフローテーブルの確認も行った．
+結果，**host1-1**から**host1-2**へパケットが送信されていることが確認でき，各スイッチのフローテーブルは空であることが確認できた．
+
+```
+$ bin/trema send_packet --source "host1-1" --dest "host1-2"
+$ bin/trema show_stats "host1-1"
 Packets sent:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
-$ bin/trema show_stats host2
+  192.168.0.11 -> 192.168.0.12 = 1 packet
+$ bin/trema show_stats "host1-2"
 Packets received:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
+  192.168.0.11 -> 192.168.0.12 = 1 packet
 $ bin/trema dump_flows lsw1
 NXST_FLOW reply (xid=0x4):
 $ bin/trema dump_flows lsw2
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw3
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw4
 NXST_FLOW reply (xid=0x4):
 ```  
 <br />
 
-続けて，**host2**->**host1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
+続けて，**host1-2**->**host1-1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
 また全てのスイッチのフローテーブルの確認も行った．  
-結果，**host2**から**host1**へパケットが送信されていることが確認できた．
-各スイッチのフローテーブルは前述したとおりになっていることが確認でき，フローテーブルの管理も含めて正常に動作しているといえる．
+結果，**host1-2**から**host1-1**へパケットが送信されていることが確認できた．
+各スイッチのフローテーブルは前述したとおりになっていることが確認でき，フローテーブルの管理も含めて正常に動作しているといえる．(dl_src, dl_dst, actionsの値を確認すると，前述通りのフローテーブルになっていることが分かる)
 
 
 ```
-$ bin/trema send_packet --source host2 --dest host1
-$ bin/trema show_stats host1
+$ bin/trema send_packet --source "host1-2" --dest "host1-1"
+$ bin/trema show_stats "host1-1"
 Packets sent:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
+  192.168.0.11 -> 192.168.0.12 = 1 packet
 Packets received:
-  192.168.0.2 -> 192.168.0.1 = 1 packet
-$ bin/trema show_stats host2
+  192.168.0.12 -> 192.168.0.11 = 1 packet
+$ bin/trema show_stats "host1-2"
 Packets sent:
-  192.168.0.2 -> 192.168.0.1 = 1 packet
+  192.168.0.12 -> 192.168.0.11 = 1 packet
 Packets received:
-  192.168.0.1 -> 192.168.0.2 = 1 packet
+  192.168.0.11 -> 192.168.0.12 = 1 packet
 $ bin/trema dump_flows lsw1
 NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=12.991s, table=0, n_packets=0, n_bytes=0, idle_age=12,
-priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:02,dl_dst=00:00:00:00:00:01,
-nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
+ cookie=0x0, duration=12.19s, table=0, n_packets=0, n_bytes=0, idle_age=12, priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:12,dl_dst=00:00:00:00:00:11,
+nw_src=192.168.0.12,nw_dst=192.168.0.11,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
 $ bin/trema dump_flows lsw2
 NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=14.994s, table=0, n_packets=0, n_bytes=0, idle_age=14,
-priority=65535,udp,in_port=1,vlan_tci=0x0000,dl_src=00:00:00:00:00:02,dl_dst=00:00:00:00:00:01,
-nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 actions=output:2
 $ bin/trema dump_flows lsw3
 NXST_FLOW reply (xid=0x4):
 $ bin/trema dump_flows lsw4
 NXST_FLOW reply (xid=0x4):
 ```
 
-#### 動作チェックの補足
-`***`の項目を確認すると，きちんと予想通りのフローテーブルができていることが分かる．  
+そして再度，**host1-1**->**host1-2**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
+また全てのスイッチのフローテーブルの確認も行った．  
+結果，**host1-1**から**host1-2**へ再度パケットが送信されていることが確認できた．
+各スイッチのフローテーブルは前述したとおりになっていることが確認でき，フローテーブルの管理も含めて正常に動作しているといえる．(dl_src, dl_dst, actionsの値を確認すると，前述通りのフローテーブルになっていることが分かる)
 
-$ bin/trema dump_flows lsw1  
-NXST_FLOW reply (xid=0x4):  
-  cookie=0x0, duration=12.991s, table=0, n_packets=0, n_bytes=0, idle_age=12,  priority=65535,udp,in_port=2,vlan_tci=0x0000,`dl_src=00:00:00:00:00:02`,`dl_dst=00:00:00:00:00:01`,nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 `actions=output:1`
 
-$ bin/trema dump_flows lsw2  
-NXST_FLOW reply (xid=0x4):  
- cookie=0x0, duration=14.994s, table=0, n_packets=0, n_bytes=0, idle_age=14,  priority=65535,udp,in_port=1,vlan_tci=0x0000,`dl_src=00:00:00:00:00:02`,`dl_dst=00:00:00:00:00:01`,nw_src=192.168.0.2,nw_dst=192.168.0.1,nw_tos=0,tp_src=0,tp_dst=0 `actions=output:2`
+```
+$ bin/trema send_packet --source "host1-1" --dest "host1-2"
+$ bin/trema show_stats "host1-1"
+Packets sent:
+  192.168.0.11 -> 192.168.0.12 = 2 packets
+Packets received:
+  192.168.0.12 -> 192.168.0.11 = 1 packet
+$ bin/trema show_stats "host1-2"
+Packets sent:
+  192.168.0.12 -> 192.168.0.11 = 1 packet
+Packets received:
+  192.168.0.11 -> 192.168.0.12 = 2 packets
+$ bin/trema dump_flows lsw1
+NXST_FLOW reply (xid=0x4):
+ cookie=0x0, duration=8.085s, table=0, n_packets=0, n_bytes=0, idle_age=8, priority=65535,udp,in_port=1,vlan_tci=0x0000,dl_src=00:00:00:00:00:11,dl_dst=00:00:00:00:00:12,
+nw_src=192.168.0.11,nw_dst=192.168.0.12,nw_tos=0,tp_src=0,tp_dst=0 actions=output:2
+ cookie=0x0, duration=272.267s, table=0, n_packets=0, n_bytes=0, idle_age=272, priority=65535,udp,in_port=2,vlan_tci=0x0000,dl_src=00:00:00:00:00:12,dl_dst=00:00:00:00:00:11,
+nw_src=192.168.0.12,nw_dst=192.168.0.11,nw_tos=0,tp_src=0,tp_dst=0 actions=output:1
+$ bin/trema dump_flows lsw2
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw3
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw4
+NXST_FLOW reply (xid=0x4):
+```
+
+
+
+#### 動作テスト その2
+##### host1-1とhost2-1の送受信
+###### 予想される動作
+**host1-1**と**host2-1**の送受信のテストをした．  
+**host1-1**から**host2-1**へパケットを送信する際に予想される動作を以下に述べる．
+
+1. **host1-1**から**lsw1**へパケットが転送される
+2. **lsw1**のフローテーブルが空なので，PacketInがコントローラに送られる． 
+3. コントローラはPacketInメッセージから**host1-1**のMACアドレスとポート番号をFDB1に保存する．[FDB1; `:11 => ポート1`]   
+4. コントローラは送信先の**host2-1**のMACアドレスがFDB1に登録されていないので，パケットをフラッディングとしてPacketOutする．  
+5. PacketOutを受け取った**lsw1**はパケットをフラッディングするので，結果，パケットが**host1-2**へ転送されるが，***host2-1***へは転送されない．
+6. 結果，**host1-1**から**host2-1**へはパケットが伝送されない．
+
+※処理後，全てのスイッチのフローテーブルは更新されていないので空のままのはずである．  
+
+
+###### 実行結果
+動作テストの実行結果を，以下に示す．  
+まず，**host1-1**->**host2-1**へパケットを送信し，`show_stats`で各ホストが送受信したパケットの統計情報を確認する．  
+また全てのスイッチのフローテーブルの確認も行った．
+結果，**host1-1**から**host2-1**へパケットが送信できておらず，各スイッチのフローテーブルは空であることが確認できた．なお，フラッディングで**host1-2**へパケットが転送されたが，宛先が異なるので破棄されたので**host1-2**の`show_stats`は空であった．
+
+```
+$ bin/trema send_packet --source "host1-1" --dest "host2-1"
+$ bin/trema show_stats "host1-1"
+Packets sent:
+  192.168.0.11 -> 192.168.0.21 = 1 packet
+$ bin/trema show_stats "host1-2"
+$ bin/trema show_stats "host2-1"
+$ bin/trema dump_flows lsw1
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw2
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw3
+NXST_FLOW reply (xid=0x4):
+$ bin/trema dump_flows lsw4
+NXST_FLOW reply (xid=0x4):
+```  
