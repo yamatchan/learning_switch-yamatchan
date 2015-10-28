@@ -99,61 +99,77 @@ link 'lsw', 'host2'
 
 ```
 【起動直後のフローテーブル】
-$ sudo ovs-ofctl dump-flows brlsw --protocol=OpenFlow13OFPST_FLOW reply (OF1.3) (xid=0x2): cookie=0x0, duration=3.309s, table=0, n_packets=0, n_bytes=0, priority=2,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=drop cookie=0x0, duration=3.271s, table=0, n_packets=0, n_bytes=0, priority=1 actions=goto_table:1 cookie=0x0, duration=3.271s, table=1, n_packets=0, n_bytes=0, priority=1 actions=CONTROLLER:65535,FLOOD
+$ sudo ovs-ofctl dump-flows brlsw --protocol=OpenFlow13
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=3.309s, table=0, n_packets=0, n_bytes=0, priority=2,
+dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=drop
+ cookie=0x0, duration=3.271s, table=0, n_packets=0, n_bytes=0, priority=1 actions=goto_table:1
+ cookie=0x0, duration=3.271s, table=1, n_packets=0, n_bytes=0, priority=1 actions=CONTROLLER:65535,FLOOD
 ```
 
 そして，**host1**から**host2**へパケットを送信し，送信後のフローテーブルを確認した．  
 **host1**で送信されたパケットは正常に**host2**で受信できていた．  
 また，フローテーブル(`Fowardingテーブル`)に新しいルールが追加されていることが確認できる．  
 新たに追加されたルールは宛先MACアドレスが`00:00:00:00:00:01`のパケットをポート1(**host1**)に転送するといったルールになっている．
-```$ bin/trema send_packet --source host1 --dest host2$ bin/trema show_stats host1Packets sent:  192.168.0.1 -> 192.168.0.2 = 1 packet$ bin/trema show_stats host2Packets received:  192.168.0.1 -> 192.168.0.2 = 1 packet$ sudo ovs-ofctl dump-flows brlsw --protocol=OpenFlow13OFPST_FLOW reply (OF1.3) (xid=0x2): cookie=0x0, duration=22.424s, table=0, n_packets=0, n_bytes=0, priority=2,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=drop cookie=0x0, duration=22.386s, table=0, n_packets=1, n_bytes=42, priority=1 actions=goto_table:1 cookie=0x0, duration=10.115s, table=1, n_packets=0, n_bytes=0, idle_timeout=180, priority=2,dl_dst=00:00:00:00:00:01 actions=output:1 cookie=0x0, duration=22.386s, table=1, n_packets=1, n_bytes=42, priority=1 actions=CONTROLLER:65535,FLOOD
-```その後，**host2**から**host1**へパケットを送信し，送信後のフローテーブルを確認した．  
+
+```
+$ bin/trema send_packet --source host1 --dest host2
+$ bin/trema show_stats host1
+Packets sent:
+  192.168.0.1 -> 192.168.0.2 = 1 packet
+$ bin/trema show_stats host2
+Packets received:
+  192.168.0.1 -> 192.168.0.2 = 1 packet
+$ sudo ovs-ofctl dump-flows brlsw --protocol=OpenFlow13
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=22.424s, table=0, n_packets=0, n_bytes=0, priority=2,
+dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=drop
+ cookie=0x0, duration=22.386s, table=0, n_packets=1, n_bytes=42, priority=1 actions=goto_table:1
+ cookie=0x0, duration=10.115s, table=1, n_packets=0, n_bytes=0, idle_timeout=180, priority=2,
+dl_dst=00:00:00:00:00:01 actions=output:1
+ cookie=0x0, duration=22.386s, table=1, n_packets=1, n_bytes=42, priority=1 actions=CONTROLLER:65535,FLOOD
+```
+
+その後，**host2**から**host1**へパケットを送信し，送信後のフローテーブルを確認した．  
 **host2**で送信されたパケットは正常に**host1**で受信できていた．   
-また，前述のとおりルールが追加されていないことが確認できる．
-```$ bin/trema send_packet --source host2 --dest host1$ bin/trema show_stats host1Packets sent:  192.168.0.1 -> 192.168.0.2 = 1 packetPackets received:  192.168.0.2 -> 192.168.0.1 = 1 packet$ bin/trema show_stats host2Packets sent:  192.168.0.2 -> 192.168.0.1 = 1 packetPackets received:  192.168.0.1 -> 192.168.0.2 = 1 packet$ sudo ovs-ofctl dump-flows brlsw --protocol=OpenFlow13OFPST_FLOW reply (OF1.3) (xid=0x2): cookie=0x0, duration=52.24s, table=0, n_packets=0, n_bytes=0, priority=2,dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=drop cookie=0x0, duration=52.202s, table=0, n_packets=2, n_bytes=84, priority=1 actions=goto_table:1 cookie=0x0, duration=39.931s, table=1, n_packets=1, n_bytes=42, idle_timeout=180, priority=2,dl_dst=00:00:00:00:00:01 actions=output:1 cookie=0x0, duration=52.202s, table=1, n_packets=1, n_bytes=42, priority=1 actions=CONTROLLER:65535,FLOOD
+また，前述のとおりフローテーブル(`Fowardingテーブル`)にルールが追加されていないことが確認できる．
+
+```
+$ bin/trema send_packet --source host2 --dest host1
+$ bin/trema show_stats host1
+Packets sent:
+  192.168.0.1 -> 192.168.0.2 = 1 packet
+Packets received:
+  192.168.0.2 -> 192.168.0.1 = 1 packet
+$ bin/trema show_stats host2
+Packets sent:
+  192.168.0.2 -> 192.168.0.1 = 1 packet
+Packets received:
+  192.168.0.1 -> 192.168.0.2 = 1 packet
+$ sudo ovs-ofctl dump-flows brlsw --protocol=OpenFlow13
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x0, duration=52.24s, table=0, n_packets=0, n_bytes=0, priority=2,
+dl_dst=01:00:5e:00:00:00/ff:ff:ff:00:00:00 actions=drop
+ cookie=0x0, duration=52.202s, table=0, n_packets=2, n_bytes=84, priority=1 actions=goto_table:1
+ cookie=0x0, duration=39.931s, table=1, n_packets=1, n_bytes=42, idle_timeout=180, priority=2,
+dl_dst=00:00:00:00:00:01 actions=output:1
+ cookie=0x0, duration=52.202s, table=1, n_packets=1, n_bytes=42, priority=1 actions=CONTROLLER:65535,FLOOD
 ```
 
 
 #### 考察
 ##### 今回の課題のコントローラの不具合
 前回の課題で利用したコントローラは，PacketInされたときに，パケットの宛先MACアドレスがFDBに登録済みであれば，フローテーブルにルールを追加するといった処理であった．
-そのため，フローテーブルにルールを追加されるのは**host1 → host\*** (host\*は任意のホスト)へパケットが送信され，その後 **host\* → host1** (host\*は任意のホスト)へパケットが送信された時に初めてフローテーブルに**host1**への転送に関するルールが追加されていた．
+そのため，フローテーブルにルールを追加されるのは**host1 → hostA** (**hostA**は任意のホスト)へパケットが送信され，その後 **hostA → host1** (**hostA**は任意のホスト)へパケットが送信された時に初めてフローテーブルに**host1**への転送に関するルールが追加されていた．
 ようするに，フローテーブルにルールを追加するのにパケットの送信が2回必要であった．
 
 今回の課題で利用したコントローラは，パケットが送信され**PacketInが発生したとき**にパケットの送信元MACアドレスと送信元ポート番号からフローテーブルにルールを追加している．
-そのため，**host1** → **host\***へパケットが送信された時にフローテーブルに**host1**への転送に関するルールが追加されている．
+そのため，**host1** → **hostA**へパケットが送信された時にフローテーブルに**host1**への転送に関するルールが追加されている．
 しかし，この手法だと続けて**host2** → **host1**へパケットを送信した時に，送信先の**host1**がフローテーブルに登録済みであるため，PacketInが発生しないのでフローテーブルは更新されずに**host1**のポートへPortOutされる．
 
 ***この手法だとここで問題が発生する***．
 再度，**host1 → host2**へパケットを送信した時を考えると，送信先の**host2**はフローテーブルに登録されていないため，PacketInが発生する．
-このコントローラは前述のとおりPacketInが発生した時にフローテーブルにルールを追加するが，このとき追加するルールはパケットの送信元であるhost1に関する転送のルールである．**host1**への転送のルールは**host1 → host\***へ転送した時に既に設定済みであるため，実質フローテーブルは更新されない．
+このコントローラは前述のとおりPacketInが発生した時にフローテーブルにルールを追加するが，このとき追加するルールはパケットの送信元であるhost1に関する転送のルールである．**host1**への転送のルールは**host1 → hostA**へ転送した時に既に設定済みであるため，実質フローテーブルは更新されない．
 ということは，ようするに，**host1**と**host2**でパケットの送受信としているうちは，**host1**に関する転送のルールは設定されるが**host2**に関する転送のルールは***永遠に設定されない***ということになる．
-よって，今回の課題で利用したコントローラは，**host1 → host2**へ送信されるパケットは常にPacketInが発生し，コントローラに負荷を与え，さらにスループットが低下するといった不具合があると考えられる．
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+よって，今回の課題で利用したコントローラは，**host1 → host2**へ送信されるパケットは***常にPacketInが発生***する．
+そのため，___コントローラに負荷を与え，さらにスループットが低下するといった不具合___があると考えられる．
